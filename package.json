@@ -11,6 +11,10 @@
     "url": "https://github.com/imselmon/blaze/issues"
   },
   "homepage": "https://github.com/imselmon/blaze#readme",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

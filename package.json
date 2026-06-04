@@ -1,7 +1,16 @@
 {
   "name": "blaze",
   "version": "1.0.0",
-  "description": "Express-style web framework for Cloudflare Workers — zero dependencies, fully typed",
+  "description": "Fastest web framework for Cloudflare Workers — zero dependencies, fully typed",
+  "author": "imselmon",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/imselmon/blaze.git"
+  },
+  "bugs": {
+    "url": "https://github.com/imselmon/blaze/issues"
+  },
+  "homepage": "https://github.com/imselmon/blaze#readme",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -77,7 +86,6 @@
     "cloudflare",
     "workers",
     "framework",
-    "express",
     "router",
     "middleware"
   ],

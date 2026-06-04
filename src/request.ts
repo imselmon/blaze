@@ -103,6 +103,19 @@ export class BlazeRequest<E = Record<string, unknown>> {
     const accept = this.raw.headers.get('Accept') || '*/*';
     const candidates = Array.isArray(types) ? types : [types];
 
+    // Helper to map shorthand types
+    const expand = (t: string) => {
+      const map: Record<string, string> = {
+        json: 'application/json',
+        html: 'text/html',
+        text: 'text/plain',
+        xml: 'application/xml',
+        form: 'application/x-www-form-urlencoded',
+        png: 'image/png',
+      };
+      return map[t] || t;
+    };
+
     const parsed = accept
       .split(',')
       .map((part) => {
@@ -115,11 +128,12 @@ export class BlazeRequest<E = Record<string, unknown>> {
 
     for (const { type: acceptedType } of parsed) {
       for (const candidate of candidates) {
-        if (acceptedType === '*/*' || acceptedType === candidate) {
+        const expandedCandidate = expand(candidate);
+        if (acceptedType === '*/*' || acceptedType === expandedCandidate) {
           return candidate;
         }
         const [mainA = '', subA = ''] = acceptedType.split('/');
-        const [mainC = '', subC = ''] = candidate.split('/');
+        const [mainC = '', subC = ''] = expandedCandidate.split('/');
         if (mainA === mainC && (subA === '*' || subA === subC)) {
           return candidate;
         }

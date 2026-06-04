@@ -1,5 +1,5 @@
 {
-  "name": "blaze",
+  "name": "blazefw",
   "version": "1.0.0",
   "description": "Fastest web framework for Cloudflare Workers — zero dependencies, fully typed",
   "author": "imselmon",

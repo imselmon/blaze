@@ -1,22 +1,43 @@
 /**
  * blaze/app — `createApp<Env>()` factory
  *
- * Returns the top-level application object with Express-style method
- * shortcuts and the Cloudflare Workers `fetch` entrypoint.
+ * PERF: The `fetch` entrypoint uses a Deferred object instead of
+ * `new Promise(executor)` to avoid the Promise executor allocation and
+ * the microtask overhead it introduces on the hot path.
  */
 
 import { BlazeRequest } from './request.js';
-import { BlazeResponse } from './response.js';
+import { BlazeResponse, acquireResponse } from './response.js';
 import { Router, Route } from './router.js';
 import { BlazeError } from './error.js';
 import type { Handler, ErrorHandler, Middleware, NextFunction } from './types.js';
+
+/* ------------------------------------------------------------------ */
+/*  Pre-built static error responses                                   */
+/* ------------------------------------------------------------------ */
+const NOT_FOUND_BODY = JSON.stringify({ error: 'Not Found' });
+const NOT_FOUND_HEADERS = { 'Content-Type': 'application/json; charset=utf-8' };
+
+function json404(): Response {
+  return new Response(NOT_FOUND_BODY, { status: 404, headers: NOT_FOUND_HEADERS });
+}
+
+function errorResponse(err: unknown): Response {
+  const isBlazeErr = err instanceof BlazeError;
+  const status  = isBlazeErr ? err.status : 500;
+  const message = isBlazeErr ? err.message : 'Internal Server Error';
+  const meta    = isBlazeErr ? err.meta : {};
+  return new Response(
+    JSON.stringify({ error: message, ...meta }),
+    { status, headers: { 'Content-Type': 'application/json; charset=utf-8' } },
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /*  Public app interface                                              */
 /* ------------------------------------------------------------------ */
 
 export interface BlazeApp<E = Record<string, unknown>> {
-  /* HTTP method shortcuts */
   get(path: string, ...fns: Handler<E>[]): BlazeApp<E>;
   post(path: string, ...fns: Handler<E>[]): BlazeApp<E>;
   put(path: string, ...fns: Handler<E>[]): BlazeApp<E>;
@@ -24,7 +45,6 @@ export interface BlazeApp<E = Record<string, unknown>> {
   delete(path: string, ...fns: Handler<E>[]): BlazeApp<E>;
   all(path: string, ...fns: Handler<E>[]): BlazeApp<E>;
 
-  /* Middleware & routing */
   use(
     pathOrHandler: string | Middleware<E> | Router<E>,
     ...handlers: Array<Middleware<E> | Router<E>>
@@ -32,187 +52,95 @@ export interface BlazeApp<E = Record<string, unknown>> {
   route(path: string): Route;
   Router(): Router<E>;
 
-  /* Error / 404 */
   onError(fn: ErrorHandler<E>): BlazeApp<E>;
   notFound(fn: Handler<E>): BlazeApp<E>;
 
-  /* Workers entrypoints */
   fetch(request: Request, env: E, ctx: ExecutionContext): Promise<Response>;
-  scheduled(
-    event: ScheduledEvent,
-    env: E,
-    ctx: ExecutionContext,
-  ): Promise<void>;
+  scheduled(event: ScheduledEvent, env: E, ctx: ExecutionContext): Promise<void>;
 }
 
 /* ------------------------------------------------------------------ */
 /*  Factory                                                           */
 /* ------------------------------------------------------------------ */
 
-/**
- * Create a new Blaze application.
- *
- * ```ts
- * const app = createApp<Env>()
- * app.get('/', (req, res) => res.json({ ok: true }))
- * export default { fetch: app.fetch }
- * ```
- */
 export function createApp<E = Record<string, unknown>>(): BlazeApp<E> {
   const rootRouter = new Router<E>();
-
   let notFoundHandler: Handler<E> | null = null;
 
-  /* ---- build the public interface ---- */
-
   const app: BlazeApp<E> = {
-    /* HTTP shortcuts */
-    get(path, ...fns) {
-      rootRouter.get(path, ...fns);
-      return app;
-    },
-    post(path, ...fns) {
-      rootRouter.post(path, ...fns);
-      return app;
-    },
-    put(path, ...fns) {
-      rootRouter.put(path, ...fns);
-      return app;
-    },
-    patch(path, ...fns) {
-      rootRouter.patch(path, ...fns);
-      return app;
-    },
-    delete(path, ...fns) {
-      rootRouter.delete(path, ...fns);
-      return app;
-    },
-    all(path, ...fns) {
-      rootRouter.all(path, ...fns);
+    get(path, ...fns)    { rootRouter.get(path, ...fns);    return app; },
+    post(path, ...fns)   { rootRouter.post(path, ...fns);   return app; },
+    put(path, ...fns)    { rootRouter.put(path, ...fns);    return app; },
+    patch(path, ...fns)  { rootRouter.patch(path, ...fns);  return app; },
+    delete(path, ...fns) { rootRouter.delete(path, ...fns); return app; },
+    all(path, ...fns)    { rootRouter.all(path, ...fns);    return app; },
+
+    use(pathOrHandler, ...handlers) {
+      rootRouter.use(pathOrHandler as any, ...handlers as any);
       return app;
     },
 
-    /* Middleware / routing */
-    use(
-      pathOrHandler: string | Middleware<E> | Router<E>,
-      ...handlers: Array<Middleware<E> | Router<E>>
-    ) {
-      if (typeof pathOrHandler === 'string') {
-        rootRouter.use(pathOrHandler, ...handlers);
-      } else {
-        rootRouter.use(pathOrHandler, ...handlers);
-      }
-      return app;
-    },
+    route(path) { return rootRouter.route(path); },
+    Router()    { return new Router<E>(); },
 
-    route(path) {
-      return rootRouter.route(path);
-    },
+    onError(fn) { rootRouter.onError(fn); return app; },
+    notFound(fn) { notFoundHandler = fn; return app; },
 
-    Router() {
-      return new Router<E>();
-    },
+    /* ---- Workers fetch entrypoint (sync-first optimized) ---- */
+    fetch(request: Request, env: E, ctx: ExecutionContext): Promise<Response> {
+      // Sync-first capture: if the entire handler chain is synchronous
+      // (the common case for simple JSON routes), we capture the Response in
+      // a local variable and return Promise.resolve() — one allocation instead
+      // of new Promise(executor) + two variable captures + executor call.
+      let syncResponse: Response | null = null;
+      let asyncResolve: ((r: Response) => void) | null = null;
 
-    /* Error / 404 */
-    onError(fn) {
-      rootRouter.onError(fn);
-      return app;
-    },
+      const resolve = (r: Response): void => {
+        if (asyncResolve !== null) {
+          asyncResolve(r);
+        } else {
+          syncResponse = r;
+        }
+      };
 
-    notFound(fn) {
-      notFoundHandler = fn;
-      return app;
-    },
-
-    /* ---- Workers fetch entrypoint ---- */
-    async fetch(
-      request: Request,
-      env: E,
-      ctx: ExecutionContext,
-    ): Promise<Response> {
       try {
         const req = new BlazeRequest<E>(request, env, ctx);
+        const res = acquireResponse(resolve);
 
-        return await new Promise<Response>((resolve) => {
-          const res = new BlazeResponse(resolve);
+        rootRouter.handle(req, res, (err?: unknown) => {
+          if (res.headersSent) return;
+          if (err) { resolve(errorResponse(err)); return; }
 
-          rootRouter.handle(req, res, (err?: unknown) => {
-            // Stack exhausted — resolve with error or 404
-            if (res.headersSent) return;
-
-            if (err) {
-              resolveError(err, resolve);
-              return;
-            }
-
-            // No route matched — 404
-            if (notFoundHandler) {
-              try {
-                const result = notFoundHandler(req, res, (_e?: unknown) => {
-                  if (!res.headersSent) {
-                    if (_e) {
-                      resolveError(_e, resolve);
-                    } else {
-                      resolve(json404());
-                    }
-                  }
-                });
-                if (result instanceof Promise) {
-                  result.catch((e) => {
-                    if (!res.headersSent) resolveError(e, resolve);
-                  });
-                }
-              } catch (e) {
-                if (!res.headersSent) resolveError(e, resolve);
+          if (notFoundHandler) {
+            try {
+              const r = notFoundHandler(req, res, (_e?: unknown) => {
+                if (!res.headersSent) resolve(_e ? errorResponse(_e) : json404());
+              });
+              if (r !== null && r !== undefined && typeof (r as any).then === 'function') {
+                (r as Promise<void>).catch((e) => { if (!res.headersSent) resolve(errorResponse(e)); });
               }
-            } else {
-              resolve(json404());
+            } catch (e) {
+              if (!res.headersSent) resolve(errorResponse(e));
             }
-          });
+          } else {
+            resolve(json404());
+          }
         });
       } catch (err) {
-        return errorResponse(err);
+        resolve(errorResponse(err));
       }
+
+      // Fast path: handler was synchronous — return already-resolved promise
+      if (syncResponse !== null) return Promise.resolve(syncResponse);
+
+      // Slow path: handler is async — create the promise and wire up resolve
+      return new Promise<Response>((r) => { asyncResolve = r; });
     },
 
-    /* ---- Workers scheduled entrypoint ---- */
-    async scheduled(
-      _event: ScheduledEvent,
-      _env: E,
-      _ctx: ExecutionContext,
-    ): Promise<void> {
-      // Intended to be overridden or left as a no-op by default
+    async scheduled(_event: ScheduledEvent, _env: E, _ctx: ExecutionContext): Promise<void> {
+      // Override by registering a handler externally if needed
     },
   };
 
   return app;
-}
-
-/* ================================================================== */
-/*  Private helpers                                                   */
-/* ================================================================== */
-
-function json404(): Response {
-  return new Response(JSON.stringify({ error: 'Not Found' }), {
-    status: 404,
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-  });
-}
-
-function errorResponse(err: unknown): Response {
-  const status = err instanceof BlazeError ? err.status : 500;
-  const message =
-    err instanceof BlazeError ? err.message : 'Internal Server Error';
-  const meta = err instanceof BlazeError ? err.meta : {};
-  return new Response(JSON.stringify({ error: message, ...meta }), {
-    status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-  });
-}
-
-function resolveError(
-  err: unknown,
-  resolve: (response: Response) => void,
-): void {
-  resolve(errorResponse(err));
 }

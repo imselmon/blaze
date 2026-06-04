@@ -6,6 +6,14 @@
 
 Blaze is a lightweight, Express-style web framework purpose-built for Cloudflare Workers. It combines the familiar ergonomics of Express — `(req, res, next)` middleware, `Router`, and route chaining — with first-class support for every Cloudflare primitive: KV, D1, R2, Durable Objects, Queues, AI, and the `ExecutionContext`.
 
+## Features
+
+- **Ultrafast** 🚀 - Blaze's hand-rolled TrieRouter uses an O(1) character index and precompiled parametric routes to ensure minimal cold starts and zero linear scanning overhead.
+- **Lightweight** 🪶 - Zero npm dependencies. Built entirely on the Web Standard API, resulting in an exceptionally small bundle size.
+- **Cloudflare Native** 🌍 - Built from the ground up specifically for Cloudflare Workers. Direct, first-class access to KV, D1, R2, AI, Durable Objects, and native `ExecutionContext`.
+- **Batteries Included** 🔋 - Ships with 12 built-in, tree-shakeable middleware modules including JWT auth, KV rate limiting, CORS, and caching. No need to install extra packages.
+- **Delightful DX** 😃 - Familiar Express-style `(req, res, next)` API with first-class TypeScript support. Enjoy strongly-typed environments, params, and middleware out of the box.
+
 ## Why Blaze?
 
 Unlike Hono, which wraps everything in a custom `Context` object, Blaze enriches the standard Web Platform `Request` and `Response` objects and injects Cloudflare bindings directly onto a typed `env` object accessible from any handler. 

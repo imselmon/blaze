@@ -16,7 +16,7 @@ Blaze is a lightweight, Express-style web framework purpose-built for Cloudflare
 
 ## Why Blaze?
 
-Unlike Hono, which wraps everything in a custom `Context` object, Blaze enriches the standard Web Platform `Request` and `Response` objects and injects Cloudflare bindings directly onto a typed `env` object accessible from any handler. 
+Unlike Hono, which wraps everything in a custom `Context` object, Blaze enriches the standard Web Platform `Request` and `Response` objects and injects Cloudflare bindings directly onto a typed `env` object accessible from any handler.
 
 - **Express Parity**: Drop-in compatible with thousands of existing Express middleware packages.
 - **CF-Native Bindings**: `req.env.KV`, `req.env.DB`, `req.ctx.waitUntil()`.
@@ -47,36 +47,35 @@ npm install blazefw
 ## Quick Start
 
 ```typescript
-import { createApp } from 'blazefw'
+import { createApp } from "blazefw";
 
 // Define your Cloudflare bindings
 type Env = {
-  DB: D1Database
-  KV: KVNamespace
-}
+  DB: D1Database;
+  KV: KVNamespace;
+};
 
-const app = createApp<Env>()
+const app = createApp<Env>();
 
-app.get('/', (req, res) => {
-  res.json({ hello: 'world' })
-})
+app.get("/", (req, res) => {
+  res.json({ hello: "world" });
+});
 
-app.get('/users/:id', async (req, res) => {
-  const user = await req.env.DB
-    .prepare('SELECT * FROM users WHERE id = ?')
+app.get("/users/:id", async (req, res) => {
+  const user = await req.env.DB.prepare("SELECT * FROM users WHERE id = ?")
     .bind(req.params.id)
-    .first()
+    .first();
 
-  if (!user) return res.status(404).json({ error: 'Not found' })
+  if (!user) return res.status(404).json({ error: "Not found" });
 
-  res.json(user)
-})
+  res.json(user);
+});
 
 // Export for Cloudflare Workers
 export default {
   fetch: app.fetch,
-  scheduled: app.scheduled
-}
+  scheduled: app.scheduled,
+};
 ```
 
 ## Middleware
@@ -99,17 +98,20 @@ Blaze includes 12 built-in, tree-shakeable middleware modules optimized for Clou
 Usage example:
 
 ```typescript
-import { cors } from 'blazefw/middleware/cors'
-import { logger } from 'blazefw/middleware/logger'
-import { rateLimit } from 'blazefw/middleware/rate-limit'
+import { cors } from "blazefw/middleware/cors";
+import { logger } from "blazefw/middleware/logger";
+import { rateLimit } from "blazefw/middleware/rate-limit";
 
-app.use(logger())
-app.use(cors({ origins: '*' }))
-app.use('/api', rateLimit({
-  kvBinding: (req) => req.env.KV,
-  limit: 100,
-  window: 60
-}))
+app.use(logger());
+app.use(cors({ origins: "*" }));
+app.use(
+  "/api",
+  rateLimit({
+    kvBinding: (req) => req.env.KV,
+    limit: 100,
+    window: 60,
+  }),
+);
 ```
 
 ## License

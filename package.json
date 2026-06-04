@@ -1,0 +1,91 @@
+{
+  "name": "blaze",
+  "version": "1.0.0",
+  "description": "Express-style web framework for Cloudflare Workers — zero dependencies, fully typed",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./middleware/cors": {
+      "types": "./dist/middleware/cors.d.ts",
+      "import": "./dist/middleware/cors.js"
+    },
+    "./middleware/logger": {
+      "types": "./dist/middleware/logger.d.ts",
+      "import": "./dist/middleware/logger.js"
+    },
+    "./middleware/bearer-auth": {
+      "types": "./dist/middleware/bearer-auth.d.ts",
+      "import": "./dist/middleware/bearer-auth.js"
+    },
+    "./middleware/basic-auth": {
+      "types": "./dist/middleware/basic-auth.d.ts",
+      "import": "./dist/middleware/basic-auth.js"
+    },
+    "./middleware/jwt": {
+      "types": "./dist/middleware/jwt.d.ts",
+      "import": "./dist/middleware/jwt.js"
+    },
+    "./middleware/rate-limit": {
+      "types": "./dist/middleware/rate-limit.d.ts",
+      "import": "./dist/middleware/rate-limit.js"
+    },
+    "./middleware/cache": {
+      "types": "./dist/middleware/cache.d.ts",
+      "import": "./dist/middleware/cache.js"
+    },
+    "./middleware/compress": {
+      "types": "./dist/middleware/compress.d.ts",
+      "import": "./dist/middleware/compress.js"
+    },
+    "./middleware/request-id": {
+      "types": "./dist/middleware/request-id.d.ts",
+      "import": "./dist/middleware/request-id.js"
+    },
+    "./middleware/etag": {
+      "types": "./dist/middleware/etag.d.ts",
+      "import": "./dist/middleware/etag.js"
+    },
+    "./middleware/timeout": {
+      "types": "./dist/middleware/timeout.d.ts",
+      "import": "./dist/middleware/timeout.js"
+    },
+    "./middleware/secure-headers": {
+      "types": "./dist/middleware/secure-headers.d.ts",
+      "import": "./dist/middleware/secure-headers.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "prepack": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "framework",
+    "express",
+    "router",
+    "middleware"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240529.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0",
+    "wrangler": "^3.60.0"
+  }
+}

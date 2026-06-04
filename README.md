@@ -18,14 +18,28 @@ Unlike Hono, which wraps everything in a custom `Context` object, Blaze enriches
 
 ## Installation
 
+### 1. Scaffold a new project (Recommended)
+
+The easiest way to start with Blaze is using the official CLI scaffolder. It will set up a fully typed Cloudflare Workers project, complete with Wrangler configuration and example routes:
+
 ```bash
-npm install blaze
+npm create blazefw-app@latest
+# or
+npx create-blazefw-app@latest
+```
+
+### 2. Manual Installation
+
+If you're adding Blaze to an existing project:
+
+```bash
+npm install blazefw
 ```
 
 ## Quick Start
 
 ```typescript
-import { createApp } from 'blaze'
+import { createApp } from 'blazefw'
 
 // Define your Cloudflare bindings
 type Env = {
@@ -77,9 +91,9 @@ Blaze includes 12 built-in, tree-shakeable middleware modules optimized for Clou
 Usage example:
 
 ```typescript
-import { cors } from 'blaze/middleware/cors'
-import { logger } from 'blaze/middleware/logger'
-import { rateLimit } from 'blaze/middleware/rate-limit'
+import { cors } from 'blazefw/middleware/cors'
+import { logger } from 'blazefw/middleware/logger'
+import { rateLimit } from 'blazefw/middleware/rate-limit'
 
 app.use(logger())
 app.use(cors({ origins: '*' }))

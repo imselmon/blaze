@@ -1,8 +1,24 @@
-# 🔥 Blaze
+<p align="center">
+  <img src="./blaze-fastest-web-framework-for-cloudflare-workers-zero-dependencies-fully-typed-logo.png" alt="Blaze" width="400" />
+</p>
 
-**Express-style Web Framework for Cloudflare Workers**
+<p align="center">
+  <a href="https://github.com/imselmon/blaze/actions/workflows/publish.yml"><img src="https://img.shields.io/github/actions/workflow/status/imselmon/blaze/publish.yml?branch=main" alt="Build Status"></a>
+  <a href="https://www.npmjs.com/package/blazefw"><img src="https://img.shields.io/npm/v/blazefw?color=369eff&labelColor=1f2328" alt="NPM Version"></a>
+  <a href="https://www.npmjs.com/package/blazefw"><img src="https://img.shields.io/npm/dm/blazefw?color=369eff&labelColor=1f2328" alt="NPM Downloads"></a>
+  <a href="https://bundlephobia.com/package/blazefw"><img src="https://img.shields.io/bundlephobia/minzip/blazefw?color=369eff&labelColor=1f2328" alt="Minzipped Size"></a>
+  <a href="https://github.com/imselmon/blaze/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/blazefw?color=369eff&labelColor=1f2328" alt="License"></a>
+</p>
 
-> Zero dependencies · Cloudflare-native · Fully typed · O(log n) Router
+<h1 align="center">Blaze</h1>
+
+<p align="center">
+  <b>Express-style Web Framework for Cloudflare Workers</b>
+</p>
+
+<p align="center">
+  Zero dependencies · Cloudflare-native · Fully typed · O(log n) Router
+</p>
 
 Blaze is a lightweight, Express-style web framework purpose-built for Cloudflare Workers. It combines the familiar ergonomics of Express — `(req, res, next)` middleware, `Router`, and route chaining — with first-class support for every Cloudflare primitive: KV, D1, R2, Durable Objects, Queues, AI, and the `ExecutionContext`.
 

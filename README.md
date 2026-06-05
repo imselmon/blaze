@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/imselmon/blaze/actions/workflows/publish.yml"><img src="https://img.shields.io/github/actions/workflow/status/imselmon/blaze/publish.yml?branch=main" alt="Build Status"></a>
+  <a href="https://github.com/imselmon/blaze/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/imselmon/blaze/ci.yml?branch=main" alt="Build Status"></a>
   <a href="https://www.npmjs.com/package/blazefw"><img src="https://img.shields.io/npm/v/blazefw?color=369eff&labelColor=1f2328" alt="NPM Version"></a>
   <a href="https://www.npmjs.com/package/blazefw"><img src="https://img.shields.io/npm/dm/blazefw?color=369eff&labelColor=1f2328" alt="NPM Downloads"></a>
   <a href="https://bundlephobia.com/package/blazefw"><img src="https://img.shields.io/bundlephobia/minzip/blazefw?color=369eff&labelColor=1f2328" alt="Minzipped Size"></a>
